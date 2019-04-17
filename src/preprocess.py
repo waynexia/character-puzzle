@@ -3,14 +3,14 @@ import os
 import csv
 
 # data dirctory
-data_dir = "./data/"
+data_dir = "../data/"
 
 # construct corpus voc dictionary
 def construct_corpus_vocabulary_dictionary():
     corpus_file_name = "riddle.csv"
     voc = dict()
     cnt = 0
-    with open( os.path.join(data_dir,ans_file_name), "r") as f:
+    with open( os.path.join(data_dir,corpus_file_name), "r") as f:
         for line in f:
             for word in line:
                 if word == ',':
@@ -39,14 +39,17 @@ def construct_answer_vocabulary_dictionary():
 def construct_n_for_1_dataset(n,ans_list):
     corpus_file_name = "riddle.csv"
     out_file = str(n) + "_for_1.csv"
-    with open( os.path.join(data_dir,ans_file_name), "r") as f:
+    with open( os.path.join(data_dir,corpus_file_name), "r") as f:
         with open( os.path.join(data_dir,out_file) , "w") as out:
-            writter = csv.writter(out, delimiter='', quotechar='"', quoting=csv.QUOTE_ALL)    
+            writter = csv.writer(out, delimiter=',')
             reader = csv.reader(f)
             for row in reader:
-                out_row = row + smaple.sample( [i for i in ans_list if i != row[1]], n-1 )
-                out_row[-1].append(row[1])
-                writter.writerow(out_row)
+                sample = ""
+                for word in random.sample( [i for i in ans_list if i != row[1]], n-1 ):
+                    sample += word
+                sample += row[1]
+                row.append(sample)
+                writter.writerow(row)
 
 def read_n_for_1_dataset(n):
     dataset_file = str(n) + "_for_1.csv"
@@ -60,7 +63,7 @@ def read_n_for_1_dataset(n):
     return ret
 
 
-if __name__ == __main__:
+if __name__ == "__main__":
     _,l = construct_answer_vocabulary_dictionary()
     construct_n_for_1_dataset(2,l)
     construct_n_for_1_dataset(5,l)

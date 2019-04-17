@@ -1,4 +1,6 @@
 import torch.nn as nn
+import torch
+import torch.nn.functional as F
 
 # Luong attention layer
 class Attn(torch.nn.Module):
@@ -42,31 +44,62 @@ class Attn(torch.nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, hidden_size, n_layers=1, dropout=0):
-        super(EncoderRNN, self).__init__()
+    def __init__(self, voc_size, hidden_size, n_layers=1, dropout=0):
+        super(Encoder, self).__init__()
 
         self.hidden_size = hidden_size
-        self.embedding = nn.embedding(hidden_size)
+        self.embedding = nn.Embedding(voc_size, hidden_size)
         self.n_layers = n_layers
         self.dropout = dropout
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers,dropout=(0 if n_layers == 1 else dropout))
         self.attn = Attn(method = "general", hidden_size = hidden_size)
         self.sigmoid = nn.Sigmoid()
+        self.out = nn.Linear(self.hidden_size,2)
 
-    def forward(self,input,input_len,gd,options):
+    def temp_attn(self,input,hidden):
+        #hidden = hidden.squeeze(0)
+        #attn_weight = torch.bmm(input.unsqueeze(1),hidden.unsqueeze(2))
+        print(input.shape)
+        print(hidden.shape)
+        attn_weight = torch.bmm(input.squeeze(1),hidden.squeeze(1))
+        soft_attn_weight = F.softmax(attn_weight,1)
+        new_hidden_stat = torch.bmm(input.unsqueeze(1).transpose(1,2),soft_attn_weight.unsqueeze(2))
+        return new_hidden_stat
+
+    def forward(self,input,opt):
         input_embedded = self.embedding(input)
-        gd_embedded = self.embedding(gd)
+        opt_embedded = self.embedding(opt)
+        opt_embedded = opt_embedded.unsqueeze(0)
+
+        # add batch dim
+        input_embedded = input_embedded.unsqueeze(1)
+        opt_embedded = opt_embedded.unsqueeze(0)
 
         gru_output, hidden = self.gru(input_embedded)
 
-        # concat gru_output with gd
-        concat_output = torch.cat((gru_output, gd_embedded), 1)
+        # concat gru_output with opt
+        concat_output = torch.cat((gru_output, opt_embedded))
 
-        attn_output = self.attn(concat_output,hidden)
+        #print(concat_output.shape)
+        #print(hidden.shape)
+        attn_weight = self.attn(concat_output,hidden)
+        context = attn_weight.bmm(hidden.transpose(0,1))
+
+        concat_output = concat_output.squeeze(0)
+        context = context.squeeze(1)
+        attn_output = torch.cat((concat_output,context),1)
+
+
+        #attn_output = attn_output.squeeze()
+        #attn_output = self.temp_attn(concat_output,hidden)
+        #print(attn_output.shape)
 
         sigmoid_output = self.sigmoid(attn_output)
 
-        return sigmoid_output
+        out = self.out(sigmoid_output).unsqueeze(0)
+        #print(out.shape)
+
+        return out
 
 
 
