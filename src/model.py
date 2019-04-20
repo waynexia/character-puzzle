@@ -58,40 +58,29 @@ class Encoder(nn.Module):
 
     def forward(self,input,opt):
         input_embedded = self.embedding(input)
-        #test : tmp add
-        input_embedded = input_embedded.unsqueeze(1)
-        """opt_embedded = self.embedding(opt)
+        opt_embedded = self.embedding(opt)
         opt_embedded = opt_embedded.unsqueeze(0)
 
         # add batch dim
         input_embedded = input_embedded.unsqueeze(1)
-        opt_embedded = opt_embedded.unsqueeze(0)"""
+        opt_embedded = opt_embedded.unsqueeze(0)
         gru_output, hidden = self.gru(input_embedded)
 
         # concat gru_output with opt
-        """concat_output = torch.cat((gru_output, opt_embedded))
+        concat_output = torch.cat((gru_output, opt_embedded))
 
         attn_weight = self.attn(concat_output,hidden)
         attn_weight = F.softmax(attn_weight,2)
 
         context = attn_weight.bmm(concat_output.transpose(0,1))
 
-        attn_output = context"""
-
-        # test: just use last time seq
-        #print(gru_output.shape)
-        attn_output = gru_output[-1,:,:].unsqueeze(0)
-        #print(attn_output.shape)
+        attn_output = context
         
-        # test: not use sigmoid
-        #sigmoid_output = self.sigmoid(attn_output)
-        sigmoid_output = attn_output
+        sigmoid_output = self.sigmoid(attn_output)
 
         out = self.out(sigmoid_output).squeeze(0)
 
         #out = F.softmax(out)
-
-        #exit()
 
         return out
 

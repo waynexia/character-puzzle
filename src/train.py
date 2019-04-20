@@ -21,26 +21,16 @@ def train_iter(data,model,criterion,optimizer):
             #print(opts,gd)
             y = torch.LongTensor([int(opt == gd),]).to(device)
 
-            # test: add a man-made correlation
-            X = torch.LongTensor(np.array(np.random.rand(X.shape[0]) * 100 + int(opt == gd) * 100,dtype = np.int32))
-        
-            #print(X)
-            #exit()
-
             opt = torch.tensor(opt).to(device)
             output = model(X,opt)
             
             #optim
             optimizer.zero_grad()
-            #print(y.shape)
-            #output = torch.tensor(output[0],1-output[0])
-            #print(output,y)
             loss = criterion(output,y)
             loss.backward()
             optimizer.step()
             print(loss.item())
             losses.append(loss.item())
-            #exit()
     #plt.plot(losses)
     #plt.show()
     return np.average(losses)
