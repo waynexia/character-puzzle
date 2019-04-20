@@ -56,48 +56,42 @@ class Encoder(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.out = nn.Linear(self.hidden_size,2)
 
-    def temp_attn(self,input,hidden):
-        #hidden = hidden.squeeze(0)
-        #attn_weight = torch.bmm(input.unsqueeze(1),hidden.unsqueeze(2))
-        print(input.shape)
-        print(hidden.shape)
-        attn_weight = torch.bmm(input.squeeze(1),hidden.squeeze(1))
-        soft_attn_weight = F.softmax(attn_weight,1)
-        new_hidden_stat = torch.bmm(input.unsqueeze(1).transpose(1,2),soft_attn_weight.unsqueeze(2))
-        return new_hidden_stat
-
     def forward(self,input,opt):
         input_embedded = self.embedding(input)
-        opt_embedded = self.embedding(opt)
+        #test : tmp add
+        input_embedded = input_embedded.unsqueeze(1)
+        """opt_embedded = self.embedding(opt)
         opt_embedded = opt_embedded.unsqueeze(0)
 
         # add batch dim
         input_embedded = input_embedded.unsqueeze(1)
-        opt_embedded = opt_embedded.unsqueeze(0)
-
+        opt_embedded = opt_embedded.unsqueeze(0)"""
         gru_output, hidden = self.gru(input_embedded)
 
         # concat gru_output with opt
-        concat_output = torch.cat((gru_output, opt_embedded))
+        """concat_output = torch.cat((gru_output, opt_embedded))
 
-        #print(concat_output.shape)
-        #print(hidden.shape)
         attn_weight = self.attn(concat_output,hidden)
-        context = attn_weight.bmm(hidden.transpose(0,1))
+        attn_weight = F.softmax(attn_weight,2)
 
-        concat_output = concat_output.squeeze(0)
-        context = context.squeeze(1)
-        attn_output = torch.cat((concat_output,context),1)
+        context = attn_weight.bmm(concat_output.transpose(0,1))
 
+        attn_output = context"""
 
-        #attn_output = attn_output.squeeze()
-        #attn_output = self.temp_attn(concat_output,hidden)
+        # test: just use last time seq
+        #print(gru_output.shape)
+        attn_output = gru_output[-1,:,:].unsqueeze(0)
         #print(attn_output.shape)
+        
+        # test: not use sigmoid
+        #sigmoid_output = self.sigmoid(attn_output)
+        sigmoid_output = attn_output
 
-        sigmoid_output = self.sigmoid(attn_output)
+        out = self.out(sigmoid_output).squeeze(0)
 
-        out = self.out(sigmoid_output).unsqueeze(0)
-        #print(out.shape)
+        #out = F.softmax(out)
+
+        #exit()
 
         return out
 
