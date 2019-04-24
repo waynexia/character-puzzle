@@ -37,10 +37,9 @@ def train_iter(data,model,criterion,optimizer):
 
 if __name__ == "__main__":
     loss = list()
-    for _ in range(100):    
-        data = Data.Data(n_for_1 = 2)
-        model = Model.Encoder(voc_size = data.get_voc_size(), hidden_size = 100,n_layers = 1,dropout = 0)
-
+    data = Data.Data(n_for_1 = 2)
+    model = Model.Encoder(voc_size = data.get_voc_size(), hidden_size = 100,n_layers = 1,dropout = 0)
+    for _ in range(1000):    
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(),lr = 0.0003)
 
