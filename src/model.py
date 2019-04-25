@@ -1,4 +1,5 @@
 import torch.nn as nn
+from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 import torch
 import torch.nn.functional as F
 
@@ -44,43 +45,73 @@ class Attn(torch.nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, voc_size, hidden_size, n_layers=1, dropout=0):
+    def __init__(self, batch_size, voc_size, hidden_size, device,n_layers=1, dropout=0):
         super(Encoder, self).__init__()
 
         self.hidden_size = hidden_size
-        self.embedding = nn.Embedding(voc_size, hidden_size)
+        self.device = device
+        self.batch_size = batch_size
+        self.embedding = nn.Embedding(voc_size+1, hidden_size)
         self.n_layers = n_layers
         self.dropout = dropout
-        self.gru = nn.GRU(hidden_size, hidden_size, n_layers,dropout=(0 if n_layers == 1 else dropout))
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layers,batch_first=True,dropout=(0 if n_layers == 1 else dropout))
         self.attn = Attn(method = "general", hidden_size = hidden_size)
         self.sigmoid = nn.Sigmoid()
         self.out = nn.Linear(self.hidden_size,2)
 
-    def forward(self,input,opt):
-        input_embedded = self.embedding(input)
-        opt_embedded = self.embedding(opt)
-        opt_embedded = opt_embedded.unsqueeze(0)
+    def forward(self,input,opt,lens):
+        
+        input_embedded = self.embedding(input).to(self.device)
+        opt_embedded = self.embedding(opt).to(self.device)
+        #opt_embedded = opt_embedded.unsqueeze(0)
 
         # add batch dim
-        input_embedded = input_embedded.unsqueeze(1)
-        opt_embedded = opt_embedded.unsqueeze(0)
-        gru_output, hidden = self.gru(input_embedded)
+        #input_embedded = input_embedded.unsqueeze(1)
+        opt_embedded = opt_embedded.unsqueeze(1)
+
+        #print("input before packed:",input_embedded.shape)
+        input_packed = pack_padded_sequence(input_embedded, lens, batch_first=True,enforce_sorted=False).to(self.device)
+        #print("input after packed :",input_packed.shape)
+
+        
+        gru_output_packed, hidden = self.gru(input_packed)
+        #print("gru output :" ,gru_output_packed.shape)
 
         # concat gru_output with opt
-        concat_output = torch.cat((gru_output, opt_embedded))
+        output_unpacked,_ = pad_packed_sequence(gru_output_packed, batch_first=True)
+        #print("output after unpacked :",output_unpacked.shape)
 
-        attn_weight = self.attn(concat_output,hidden)
-        attn_weight = F.softmax(attn_weight,2)
+        #print("things to concat: ",output_unpacked.shape," another : ",opt_embedded.shape)
+        concat_output = torch.cat((opt_embedded, output_unpacked),dim = 1)
+        #print("concated output :",concat_output.shape)
 
-        context = attn_weight.bmm(concat_output.transpose(0,1))
+        # process each item in batch independently
+        attn_output = list()
+        for i in range(self.batch_size):
+            #print("lens: ",lens)
+            #print("a b: ",concat_output[i][:lens[i]].unsqueeze(0).shape,hidden.shape)
+            attn_weight = self.attn(concat_output[i][:lens[i]].unsqueeze(0),hidden.transpose(0,1)[i].unsqueeze(0))
+            #print("attn weight: ", attn_weight.shape)
+            attn_weight = F.softmax(attn_weight,2)
 
-        attn_output = context
+            #print("two things to bmm: ",attn_weight.transpose(0,2).shape,concat_output[i][:lens[i]].unsqueeze(0).shape)
+            context = attn_weight.transpose(0,2).bmm(concat_output[i][:lens[i]].unsqueeze(0))
+            #print("context: ",context.shape)
+            #print(context)
+            
+            attn_output.append(context)
+
+        attn_output = torch.cat(attn_output)
+        #print("each item concat: ",attn_output.shape)
         
         sigmoid_output = self.sigmoid(attn_output)
+        #print("sigmoid output: ",sigmoid_output.shape)
 
-        out = self.out(sigmoid_output).squeeze(0)
+        out = self.out(sigmoid_output).squeeze(1)
+        #print("linear output: ",out.shape)
 
         #out = F.softmax(out)
+        #exit()
 
         return out
 
