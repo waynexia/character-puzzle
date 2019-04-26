@@ -51,13 +51,13 @@ class Encoder(nn.Module):
         self.hidden_size = hidden_size
         self.device = device
         self.batch_size = batch_size
-        self.embedding = nn.Embedding(voc_size+1, hidden_size)
+        self.embedding = nn.Embedding(voc_size+1, hidden_size).to(self.device)
         self.n_layers = n_layers
         self.dropout = dropout
-        self.gru = nn.GRU(hidden_size, hidden_size, n_layers,batch_first=True,dropout=(0 if n_layers == 1 else dropout))
-        self.attn = Attn(method = "general", hidden_size = hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layers,batch_first=True,dropout=(0 if n_layers == 1 else dropout)).to(self.device)
+        self.attn = Attn(method = "general", hidden_size = hidden_size).to(self.device)
         self.sigmoid = nn.Sigmoid()
-        self.out = nn.Linear(self.hidden_size,2)
+        self.out = nn.Linear(self.hidden_size,2).to(self.device)
 
     def forward(self,input,opt,lens):
         
@@ -67,7 +67,7 @@ class Encoder(nn.Module):
 
         # add batch dim
         #input_embedded = input_embedded.unsqueeze(1)
-        opt_embedded = opt_embedded.unsqueeze(1)
+        opt_embedded = opt_embedded.unsqueeze(1).to(self.device)
 
         #print("input before packed:",input_embedded.shape)
         input_packed = pack_padded_sequence(input_embedded, lens, batch_first=True,enforce_sorted=False).to(self.device)
@@ -82,32 +82,32 @@ class Encoder(nn.Module):
         #print("output after unpacked :",output_unpacked.shape)
 
         #print("things to concat: ",output_unpacked.shape," another : ",opt_embedded.shape)
-        concat_output = torch.cat((opt_embedded, output_unpacked),dim = 1)
+        concat_output = torch.cat((opt_embedded, output_unpacked),dim = 1).to(self.device)
         #print("concated output :",concat_output.shape)
 
         # process each item in batch independently
-        attn_output = list()
+        _attn_output = list()
         for i in range(self.batch_size):
             #print("lens: ",lens)
             #print("a b: ",concat_output[i][:lens[i]].unsqueeze(0).shape,hidden.shape)
-            attn_weight = self.attn(concat_output[i][:lens[i]].unsqueeze(0),hidden.transpose(0,1)[i].unsqueeze(0))
+            attn_weight = self.attn(concat_output[i][:lens[i]].unsqueeze(0),hidden.transpose(0,1)[i].unsqueeze(0)).to(self.device)
             #print("attn weight: ", attn_weight.shape)
-            attn_weight = F.softmax(attn_weight,2)
+            attn_weight = F.softmax(attn_weight,2).to(self.device)
 
             #print("two things to bmm: ",attn_weight.transpose(0,2).shape,concat_output[i][:lens[i]].unsqueeze(0).shape)
-            context = attn_weight.transpose(0,2).bmm(concat_output[i][:lens[i]].unsqueeze(0))
+            context = attn_weight.transpose(0,2).bmm(concat_output[i][:lens[i]].unsqueeze(0)).to(self.device)
             #print("context: ",context.shape)
             #print(context)
             
-            attn_output.append(context)
+            _attn_output.append(context)
 
-        attn_output = torch.cat(attn_output)
+        attn_output = torch.cat(_attn_output).to(self.device)
         #print("each item concat: ",attn_output.shape)
         
-        sigmoid_output = self.sigmoid(attn_output)
+        sigmoid_output = self.sigmoid(attn_output).to(self.device)
         #print("sigmoid output: ",sigmoid_output.shape)
 
-        out = self.out(sigmoid_output).squeeze(1)
+        out = self.out(sigmoid_output).squeeze(1).to(self.device)
         #print("linear output: ",out.shape)
 
         #out = F.softmax(out)

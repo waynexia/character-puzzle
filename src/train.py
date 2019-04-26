@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 
 import data as Data
@@ -13,7 +14,10 @@ def train_iter(data,model,criterion,optimizer,batch_size,voc_size):
     [dataset_X,dataset_gd,dataset_opts],datset_size = data.get_train_data()
     loss = 0
     losses = list()
-    for i in range(datset_size - batch_size):
+    for i in range(0,datset_size - batch_size,batch_size):
+        #time
+        begin_time = time.time()
+
         # padding X with `voc_size`
         X = dataset_X[i : i + batch_size]
         lens = torch.tensor([len(X[i]) for i in range(len(X))]).to(device)
@@ -23,7 +27,7 @@ def train_iter(data,model,criterion,optimizer,batch_size,voc_size):
         X = torch.tensor(X).to(device)
         gd = dataset_gd[i : i + batch_size]
         opts = dataset_opts[i : i + batch_size]
-        i += batch_size
+        #i += batch_size
         opts = [[opt[0] for opt in opts], [opt[1] for opt in opts]]
         #print(opts)
         for opt in opts:
@@ -40,6 +44,7 @@ def train_iter(data,model,criterion,optimizer,batch_size,voc_size):
             optimizer.step()
             #print(loss.item())
             losses.append(loss.item())
+        print(i,"/",datset_size," with time: ",time.time()-begin_time,end = "\r")
     return np.average(losses)
 
 def train(max_epoch,batch_size = 5):
@@ -59,6 +64,6 @@ def train(max_epoch,batch_size = 5):
     plt.show()
 
 if __name__ == "__main__":
-    train(max_epoch=1000,batch_size=5)
+    train(max_epoch=1000,batch_size=25)
 
     
