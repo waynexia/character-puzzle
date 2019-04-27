@@ -59,7 +59,7 @@ def train(max_epoch,batch_size = 5):
 
         loss.append(train_iter(data,model,criterion,optimizer,batch_size,voc_size))
         print(_,loss[-1])
-    torch.save(model.state_dict(),"./model")
+    torch.save(model.state_dict(),"./model" + str(time.time))
     plt.plot(loss)
     plt.show()
 
