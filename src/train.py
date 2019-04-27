@@ -1,17 +1,16 @@
-import torch.nn as nn
-import torch
-import matplotlib.pyplot as plt
-import numpy as np
 import time
 
-
 import data as Data
+import matplotlib.pyplot as plt
 import model as Model
+import numpy as np
+import torch
+import torch.nn as nn
 
 device = 'cuda'
 
 def train_iter(data,model,criterion,optimizer,batch_size,voc_size):
-    [dataset_X,dataset_gd,dataset_opts],datset_size = data.get_train_data()
+    [dataset_X,dataset_opt,dataset_gd],datset_size = data.get_train_data()
     loss = 0
     losses = list()
     for i in range(0,datset_size - batch_size,batch_size):
@@ -23,27 +22,22 @@ def train_iter(data,model,criterion,optimizer,batch_size,voc_size):
         lens = torch.tensor([len(X[i]) for i in range(len(X))]).to(device)
         max_len = max([len(X[i]) for i in range(len(X))])
         X = [xiter + [voc_size for _ in range(max_len - len(xiter))] for xiter in X]
-
         X = torch.tensor(X).to(device)
-        gd = dataset_gd[i : i + batch_size]
-        opts = dataset_opts[i : i + batch_size]
-        #i += batch_size
-        opts = [[opt[0] for opt in opts], [opt[1] for opt in opts]]
-        #print(opts)
-        for opt in opts:
-            y = torch.LongTensor([ opt[_] == gd[_] for _ in range(batch_size)]).to(device)
 
-            opt = torch.tensor(opt).to(device)
-            output = model(X,opt,lens)
-            
-            #optim
-            optimizer.zero_grad()
-            #print(output.shape,y.shape)
-            loss = criterion(output,y)
-            loss.backward()
-            optimizer.step()
-            #print(loss.item())
-            losses.append(loss.item())
+        gd = dataset_gd[i : i + batch_size]
+        gd = torch.LongTensor(gd).to(device)
+        opt = dataset_opt[i : i + batch_size]
+        opt = torch.tensor(opt).to(device)
+
+        output = model(X,opt,lens)
+        
+        #optim
+        optimizer.zero_grad()
+        loss = criterion(output,gd)
+        loss.backward()
+        optimizer.step()
+        
+        losses.append(loss.item())
         print(i,"/",datset_size," with time: ",time.time()-begin_time,end = "\r")
     return np.average(losses)
 
@@ -65,5 +59,3 @@ def train(max_epoch,batch_size = 5):
 
 if __name__ == "__main__":
     train(max_epoch=1000,batch_size=25)
-
-    

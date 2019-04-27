@@ -31,15 +31,15 @@ class Encoder(nn.Module):
         mask = torch.arange(maxlen).to(self.device)[None, :] <= lens[:, None] # <= because add answer to the begin, makes size increase
 
         # `fake` general method
-        energy = self.attn_linear(input)
-        hidden = final_state.transpose(0,1).cuda() # [batch size, n_layer, hidden size]
+        energy = self.attn_linear(input).to(self.device)
+        hidden = final_state.transpose(0,1).to(self.device) # [batch size, n_layer, hidden size]
         attn_weights = torch.sum(hidden * energy, dim=2) # [batch size, max length]
         attn_weights[~mask] = float('-inf') # [batch size, max length]
 
         # softmax
         attn_weights = attn_weights.unsqueeze(1).to(self.device) # [batch size, n_layer(1), max length]
-        soft_attn_weights = F.softmax(attn_weights,2).cuda() # [batch size, n_layer(1), max length]
-        new_hidden_state = torch.bmm(soft_attn_weights,input).cuda() # [batch size, n_layer(1), max length]
+        soft_attn_weights = F.softmax(attn_weights,2).to(self.device) # [batch size, n_layer(1), max length]
+        new_hidden_state = torch.bmm(soft_attn_weights,input).to(self.device) # [batch size, n_layer(1), max length]
         return new_hidden_state
 
     def forward(self,input,opt,lens):
