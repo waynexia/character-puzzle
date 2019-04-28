@@ -15,8 +15,7 @@ class Encoder(nn.Module):
         self.dropout = dropout
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers,batch_first=True,dropout=(0 if n_layers == 1 else dropout)).to(self.device)
         self.attn_linear = nn.Linear(self.hidden_size,self.hidden_size).to(self.device)
-        self.attn = self.attention_net # dont know work or not
-        self.sigmoid = nn.Sigmoid()
+        self.attn = self.attention_net
         self.out = nn.Linear(self.hidden_size,2).to(self.device)
     
     # attention net
@@ -42,14 +41,10 @@ class Encoder(nn.Module):
         new_hidden_state = torch.bmm(soft_attn_weights,input).to(self.device) # [batch size, n_layer(1), max length]
         return new_hidden_state
 
-    def forward(self,input,opt,lens):
+    def forward(self,input,lens):
         
         # embed
         input_embedded = self.embedding(input).to(self.device)
-        opt_embedded = self.embedding(opt).to(self.device)
-
-        # add length dim
-        opt_embedded = opt_embedded.unsqueeze(1).to(self.device)
 
         # pad
         input_packed = pack_padded_sequence(input_embedded, lens, batch_first=True,enforce_sorted=False).to(self.device)
@@ -60,19 +55,13 @@ class Encoder(nn.Module):
         # concat gru_output with opt
         output_unpacked,_ = pad_packed_sequence(gru_output_packed, batch_first=True)
 
-        # add opt tensor to the begining
-        concat_output = torch.cat((opt_embedded, output_unpacked),dim = 1).to(self.device)
-
         # feed into attn
-        attn_output = self.attn(concat_output,hidden,lens)
-        
-        # sigmoid attn output
-        sigmoid_output = self.sigmoid(attn_output).to(self.device)
+        attn_output = self.attn(output_unpacked,hidden,lens)
 
         # omit length dim
-        out = self.out(sigmoid_output).squeeze(1).to(self.device)
+        out = self.out(attn_output).squeeze(1).to(self.device)
 
-        # according to help(nn.CrossEntropyLoss), output need not do softmax
-        #out = F.softmax(out)
+        # softmax
+        out = F.softmax(out,dim = 1)
 
         return out

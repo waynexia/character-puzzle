@@ -1,5 +1,3 @@
-import random
-
 import preprocess
 
 class Data:
@@ -13,7 +11,6 @@ class Data:
         riddles = preprocess.read_n_for_1_dataset(n_for_1) #[[谜面，谜底，选项],]
         riddles = self.construct_classify_riddle_set(riddles) #[[谜面，答案，地信],]
         num_riddle = len(riddles)
-        random.shuffle(riddles)
         one_tenth = num_riddle // 10
         train = riddles[0:one_tenth * 8]
         valid = riddles[one_tenth * 8 : one_tenth * 9]
@@ -57,13 +54,10 @@ class Data:
     #
     ####################
     def get_train_data(self):
-        random.shuffle(self.train)
         return [ [riddle[i] for riddle in self.train] for i in range(3) ],len(self.train)
 
     def get_valid_data(self):
-        random.shuffle(self.valid)
         return [ [riddle[i] for riddle in self.valid] for i in range(3) ],len(self.valid)
 
     def get_test_data(self):
-        random.shuffle(self.test)
         return [ [riddle[i] for riddle in self.test] for i in range(3) ],len(self.test)
