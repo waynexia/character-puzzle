@@ -56,7 +56,7 @@ class Encoder(nn.Module):
         output_unpacked,_ = pad_packed_sequence(gru_output_packed, batch_first=True)
 
         # feed into attn
-        attn_output = self.attn(output_unpacked,hidden,lens)
+        attn_output = self.attn(output_unpacked,hidden,lens).to(self.device)
 
         # omit length dim
         out = self.out(attn_output).squeeze(1).to(self.device)
