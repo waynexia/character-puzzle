@@ -6,18 +6,22 @@ import csv
 data_dir = "../data/"
 
 # construct corpus voc dictionary
-def construct_corpus_vocabulary_dictionary():
+def construct_train_data_corpus_vocabulary_dictionary(begin,end):
     corpus_file_name = "riddle.csv"
     voc = dict()
     cnt = 0
+    line_cnt = begin
     with open( os.path.join(data_dir,corpus_file_name), "r") as f:
         for line in f:
+            if line_cnt >= end:
+                break
             for word in line:
                 if word == ',':
                     continue
                 if word not in voc:
                     voc[word] = cnt
                     cnt += 1
+            line_cnt += 1
     return voc
 
 # construct answer voc dictionary
