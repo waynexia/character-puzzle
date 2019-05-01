@@ -24,15 +24,18 @@ class Data:
         UNSEEN = self.voc_size + 1
 
         #indexize
-        def indexizer(riddle):
+        def indexizer(riddle,is_valid = False):
             ret = list()
             ret.append( [self.voc[word] if word in self.voc else UNSEEN for word in riddle[0] ] )
             ret.append( self.voc[riddle[1]] if riddle[1] in self.voc else UNSEEN )
-            ret.append( riddle[2] )
+            if is_valid:
+                ret.append([self.voc[word] if word in self.voc else UNSEEN for word in riddle[2] ])
+            else:
+                ret.append( riddle[2] )
             return ret
 
         self.train = [indexizer(row) for row in train]
-        self.valid = [indexizer(row) for row in valid]
+        self.valid = [indexizer(row,is_valid= True) for row in valid]
         self.test = [indexizer(row) for row in test]
         
     def construct_classify_riddle_set(self,riddles):
@@ -47,7 +50,7 @@ class Data:
                 #item.append(riddle[0]) #谜面
                 #item.append(opt) #答案
                 #item.append(opt == riddle[1]) #地信
-                ret.append([riddle[0],opt,opt == riddle[1]])
+                ret.append([riddle[0],opt,int(opt == riddle[1])])
         return ret
 
     def get_voc_dict(self):

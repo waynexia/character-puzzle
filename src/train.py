@@ -52,13 +52,13 @@ def train(max_epoch,batch_size = 5):
     epoch_count = 0
     increase_count = 0
     while True:
-        train_iter(data,model,criterion,optimizer,batch_size,voc_size)
+        train_loss = train_iter(data,model,criterion,optimizer,batch_size,voc_size)
 
         # sample
         loss.append(sample(dataset = data, model = model,batch_size = batch_size,criterion = criterion))
-        print('epoch :',epoch_count,"\t",loss[-1]," ")
+        print('epoch :',epoch_count,"\t",loss[-1],"\t",train_loss)
         if epoch_count > 5000:
-            torch.save(model.state_dict(),"../ckpt/model" + str(epoch_count))
+            torch.save(model.state_dict(),"../ckpt/model" + str(epoch_count % 1000))
 
         # judge whether stop or not
         if loss[-2] < loss[-1]:

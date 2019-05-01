@@ -9,7 +9,7 @@ def valid(model_path,n_for_1,device,batch_size):
 
 
     dataset = Data.Data(n_for_1)
-    voc_size = dataset.get_voc_size() -1
+    voc_size = dataset.get_voc_size()
     model = Model.Encoder(batch_size = batch_size,voc_size = voc_size, hidden_size = 100, device = device ,n_layers = 1,dropout = 0).to(device)
 
     model.load_state_dict(torch.load(model_path))
@@ -27,10 +27,8 @@ def valid(model_path,n_for_1,device,batch_size):
         # shape is `n_for_1` * `batch_size`
         y_pd = []
 
-        # get gd & opt
-        gt = dataset_gt[batch_iter_cnt : batch_iter_cnt + batch_size]
+        # get opt
         opt = dataset_opt[batch_iter_cnt : batch_iter_cnt + batch_size]
-        gt = torch.LongTensor(gt).to(device)
 
         # get X
         X = dataset_X[batch_iter_cnt : batch_iter_cnt + batch_size]
@@ -42,8 +40,9 @@ def valid(model_path,n_for_1,device,batch_size):
             # padding X with `voc_size`
             lens = torch.tensor([len(X_with_opt[batch_iter_cnt]) for batch_iter_cnt in range(len(X))]).to(device)
             max_len = max([len(X_with_opt[batch_iter_cnt]) for batch_iter_cnt in range(len(X))])
-            X_with_opt = [xiter + [voc_size for _ in range(max_len - len(xiter))] for xiter in X]
+            X_with_opt = [xiter + [voc_size for _ in range(max_len - len(xiter))] for xiter in X_with_opt]
             X_with_opt = torch.tensor(X_with_opt).to(device)
+            #print(X_with_opt)
             
             # feed into model
             output = model(X_with_opt,lens)
@@ -60,4 +59,4 @@ def valid(model_path,n_for_1,device,batch_size):
 
 
 if __name__ == "__main__":
-    valid(model_path = "../ckpt/model3000", n_for_1 = 5, device = "cuda", batch_size = 50) 
+    valid(model_path = "../ckpt/model960", n_for_1 = 2, device = "cuda", batch_size = 50) 
