@@ -19,17 +19,19 @@ class Data:
         valid = raw_riddles[raw_one_tenth * 9 : raw_one_tenth * 10]
 
         # get voc
-        self.voc = preprocess.construct_train_data_corpus_vocabulary_dictionary(begin = 0, end = one_tenth * 8)
-        self.voc_size = len(self.voc) + 1 # two more place, one for padding, one for unseen
-        UNSEEN = self.voc_size + 1
+        self.riddle_voc,self.ans_voc = preprocess.construct_train_data_corpus_vocabulary_dictionary(begin = 0, end = one_tenth * 8)
+        self.riddle_voc_size = len(self.riddle_voc) + 1 # two more place, one for padding, one for unseen
+        self.ans_voc_size = len(self.ans_voc) + 1
+        UNSEEN_riddle = self.riddle_voc_size + 1
+        UNSEEN_ans = self.ans_voc_size + 1
 
         #indexize
         def indexizer(riddle,is_valid = False):
             ret = list()
-            ret.append( [self.voc[word] if word in self.voc else UNSEEN for word in riddle[0] ] )
-            ret.append( self.voc[riddle[1]] if riddle[1] in self.voc else UNSEEN )
+            ret.append( [self.riddle_voc[word] if word in self.riddle_voc else UNSEEN_riddle for word in riddle[0] ] )
+            ret.append( self.ans_voc[riddle[1]] if riddle[1] in self.ans_voc else UNSEEN_ans )
             if is_valid:
-                ret.append([self.voc[word] if word in self.voc else UNSEEN for word in riddle[2] ])
+                ret.append([self.ans_voc[word] if word in self.ans_voc else UNSEEN_ans for word in riddle[2] ])
             else:
                 ret.append( riddle[2] )
             return ret
@@ -54,9 +56,9 @@ class Data:
         return ret
 
     def get_voc_dict(self):
-        return self.voc
+        return self.riddle_voc,self.ans_voc
     def get_voc_size(self):
-        return self.voc_size
+        return self.riddle_voc_size,self.ans_voc
 
     #
     #   @ret: [ riddle, answer, answer with options ], dataset size
